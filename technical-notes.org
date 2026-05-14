@@ -1,0 +1,593 @@
+:PROPERTIES:
+:ID:       792faa9b-6662-4f9c-841c-dcf7d3468986
+:END:
+#+title: Technical Notes
+#+author: Roman Todd
+#+description: master cheat sheet for technicial knowledge / interview
+#+date: [2026-03-09 Mon]
+
+* Google DT2 Technical Notes
+** Hardware / OS
+*** Linux
+**** Concepts
+***** Var/log/message
+- A centralized record of system activity
+- Aims at storing valuable, non-debug and non-critical messages. This log should be considered the "general system activity" log.
+- Typically will contain:
+  - System boot and shutdown events
+  - Hardware activity
+  - Kernel messages
+  - Network events
+  - Background services (daemon) activity
+  - Errors and warnings from various subsystems
+***** Module
+- A system that allows users to dynamically modify their shell environment to load specific software.
+- The 'module' command is a user interface for managing software environments.
+- It works by reading modulefiles, which define how an application should be set up.
+- Modulefiles configure things like:
+  - PATH
+  - LD_LIBRARY_PATH
+  - Environment variables
+  - Users can load/unload software on demand without permanently changing their system.
+***** INODE
+- A data structure which describes a filesystem object such as a file or directory. It stores all metadata about a file excepts its name and actual content.
+- Each inode stores the attributes and disk block location(s) of the object's data.
+- Directores are lists of names assigned to inodes.
+- A directory contains an entry for itself, its parent, and each of its children.
+***** Hard Link
+- Merely an additional name for an existing file on Linux or Unix-like operating systems.
+- Any number of hard links, and thus any number of names, can be created for any file.
+- Hard links can also be created to other hard links, however they cannot be created for directories, and cannot cross filesystem boundaries or span across partitions.
+  - ln file_name hardlink: creates a hard link to an existing file.
+  - ls -i: lists all files with inodes associated with each file
+***** Soft Link
+- A special kind of file that points to another file
+- A symbolic link does not contain the data in the target file, it simply points to another entry somewhere in the file system.
+- Has the ability to link to directories, or to files on remote computers networked through NFS. Also, when you delete a target file, symbolic links to that file become unuseable, whereas hard links preserve the contents of the file.
+  - lns -s file_name1 soft_link1: creates a soft link between one file and another.
+***** Filesystems
+- A file system is the method and structure an operating system uses to organize, store, and manage data on a storage device (like a hard drive or SSD).
+****** FAT32
+- Stands For: "File Allocation Table 32"
+- An older, widely compatible file system commonly used on removable and small storage devices.
+- Larger external hard drives of ~1TB will likely come formatted with NTFS.
+- You'll only want to use FAT32 with small storage devices or for comptability with other devices like digital cameras, game consoles, set-top boxes, and other devices that just support FAT32 and not the newer NTFS file system.
+- Characteristics are:
+  - 4 GB Max file size
+  - Less secure
+  - No permissions or journaling
+****** NTFS
+- Stands For: "New Technology File System"
+- The default file system for modern Windows Systems (Since XP)
+- Supports:
+    - Larger File sizes
+    - File Permissions ([[id:f5e195a7-e325-49f3-aa9c-1118fadd759f][ACLs]])
+    - Journaling
+    - Compression
+    - Encryption
+****** HFS+
+- Stands For: "Hiearchical File System Plus"
+- A file system historically used by Apple for macOS systems before newer formats replaced it.
+- Designed for macOS environments
+- Supports:
+  - Large files
+  - Metadata (resource forks, timestamps, etc.)
+  - Was the default Mac file system before 2017
+****** APFS
+- Stands For: "Apple File System"
+- The modern file system used by Apple for macOS, iOS, etc.
+- Optimized for SSD Storage.
+- Supports:
+  - Snapshots (point-in-time backups)
+  - Strong encryption (multi-key encryption)
+  - Fast File operations (copy-on-write)
+  - Space sharing between volumes
+****** Ext2/Ext3/Ext4
+- Stands for: "Extended File System"
+- Most commonly used on Linux.
+- Ext2 is an older file system -> lacks important features like journaling-if the power goes out or a PC crashes while writing to an ext2 drive, data will be lost.
+- Ext3 adds these robust features at the cost of speed.
+- Ext4 is the most modern & fastest -> it's the default file system on most Linux distros now.
+- Windows and Mac do not support Ext filesystems, however they can with third-party tools.
+- For this reason -> it's often ideal to format your linux partitions with Ext4 and leave removable devices formatted with FAT32 or NTFS.
+****** Btrfs
+- Stands For: "Better File System"
+- A modern Linux file system designed for advanced features, scalability, and data integrity.
+- Will not be set by default, but will likely replace it eventually.
+- Designed for large-scale storage systems
+- Focuses on:
+  - Data integrity
+  - Flexibility
+  - Advanced volume management
+******* Core Features
+- Copy-on-Write (CoW)
+  - Writes new data instead of overwriting existing data
+  - Improves readability and enables other features
+- Snapshots
+  - Create instant, space-efficient backups of a filesystem state
+  - Useful for:
+    - System rollback
+    - Backup strategies
+- Built-in RAID & Volume Management
+  - Can manage multiple disks without needing LVM
+  - Supports RAID-like configurations natively
+- Checksums (Data Integrity)
+  - Detects data corruption automatically
+  - Can self-heal (with redundancy configured)
+- Subvolumes
+  - Acts like separate filesystem sections within one partition
+  - Useful for organizing data or isolating workloads
+***** Raid
+- Redundant Array of Independent Drives
+  - Takes multiple hard drives and puts them together through a controller to provide a single layer capacity drive.
+  - RAID storage may be software or hardware based, and can be used for three distinct purposes:
+    1) Capacity
+       -> 2 hard drives being linked together as a single drive to the operating system. Making a virtual drive that is twice the capacity
+    2) Security
+       -> Using some space on the drives to clone the data that is written to both drives. Once again, with two drives we can make it so that data is written to both drives. If one fails, the other one is redundant.
+    3) Performance
+       -> In the same example of two drives being used as a single drive, the controller can split a data chunk into two parts and then put each of those parts on a separate drive. This effectively doubles the performance of writing or reading the data on the storage system.
+****** Raid Levels
+1) Raid 0 (Striping)
+   - Lowest level of RAID
+   - No redundancy
+   - Takes two or more drives and combines them to make a larger capacity drive.
+   - Data blocks are broken up into data chunks and then written in order across the drives.
+   -> This process is called 'striping'
+   - Data can be wrtten simultaneously to the drives, effectively multiplying the speed of the drives.
+ - Pros:
+   - Very fast (parallel read/write)
+   - Full capacity utilization
+ - Cons:
+   - No fault tolerance
+   - One drive failure = total data loss
+2) Raid 1 (Mirroring)
+   - Full level of redundancy
+   - Uses 2 or more drives
+   - All data that is written to the system is copied to each drive in a level 1 array.
+     -> This process is called "mirroring"
+ - Pros:
+   - High reliability
+   - Simple recovery
+ - Cons:
+   - 50% usable capacity (2 drives -> 1 usable drive)
+3) Raid 1+0 or 10
+   - A combination of both RAID levels 1 and 0.
+   - Minimum of 4 drives
+   - Drives are paired into mirrored sets
+     - Then data is striped across those mirrored pairs
+ - Pros:
+   - High performance
+   - High redundancy
+   - Fast rebuild times
+ - Cons:
+   - Requires more drives
+   - 50% capacity loss
+4) Raid 5
+    - Minimum of 3 drives
+    - Uses striping + distributed parity
+    - Data is split across drives (striping)
+    - Parity information is distributed across all drives
+    - Parity: calculated data
+    - Allows the system to reconstruct missing data if a drive fails
+13) Pros:
+    - Capacity
+    - Performance
+    - Fault Tolerance
+14) Cons:
+    - Slower writes (parity calculation)
+    - Only tolerates 1 drive failure
+***** Zombie Processes
+- Zombie processes are processes that have completed its execution but still has an entry in the system's process table.
+- You can view zombie processes using htop, btop, or top
+- You can also run: ps aux | grep Z (aux prints every process on the system using BSD syntax. A process with
+a ‘status’ of ‘Z’ is a zombie process.)
+**** Tools
+***** Host
+- A simple utility for performing DNS lookups. It is normally used to translate domain names to IP Addresses.
+- When no arguments or options are given, host prints a short summary of its command line arguments and options.
+***** ifconfig
+- A deprecated (replaced by ip) command for configuring, controlling, and querying network interfaces.
+- Used to configure the kernel-resident network interfaces. it is used at boot time to set up interfaces as necessary.
+- After, it is usually only needed when debugging or when system tuning is needed.
+***** Cron
+- A daemon commonly used in linux that runs processes at regular intervals
+- It checks particular folders on your system for scripts to run in a series of folders including /etc/cron.hourly, /etc/cron.daily, /etc/cron.weeky, and /etc/cron.monthly. There is also a file called /etc/crontab.
+****** Each line of a crontab file
+****** # m h dom mon dow - command
+- The minute of the hour the command is to run (m)
+- The hour of the day the command is to run (h)
+- The day of the month the command is to run (dom)
+- The month the command is to run (mon)
+- The day of the week command is to run (dow)
+****** specifications
+- For each item, you can specify a wildcard character. Look at the following examplecrontab line:
+  -> 30 18 * * * tar -zcf /var/backups/home.tgz /home/
+- At 30 minutes, 18 hours and any day, month, and day of week, this crontab entry will zip and tar the home directory to the /var/backups folder.
+***** Pipe
+- Pipes allow you to chain commands together so one command’s output becomes another’s input.
+- Ex. # command1 | command2
+  - command1 -> produces output
+  - command2 -> takes that output as input and processes it
+- Ex. # dmesg | less
+  - dmesg -> prints system boot/kernel messages
+  - less -> lets you scroll through output interactively
+- This solves the problem of output being too fast to read.
+****** Common Uses
+- ps aux | grep ssh
+  -> Filters output
+- ls | sort
+  -> Sorts
+- cat file.txt | wc -l
+  -> Counting
+Expalanation for Interview: “A pipe is a Linux feature that redirects the output of one command into the input of another, allowing commands to be chained together for more powerful data processing.”
+**** Commands
+***** NC
+- "nc" is the command which runs netcat, a simple Unix utility that reads and writes data across network connections using TCP or UDP.
+- It is designed to be a reliable backend tool that can be used directly or driven by other programs and scripts.
+***** dmesg
+- Stands for: "Diagnostic messages" -> used for troubleshooting
+- a command on most Unix-like operating systems that prints the kernel ring buffer.
+- The kernel ring buffer is a fixed size, circular data structure in linux kernel memory that stores system logs and messages.
+  - Things like:
+    - Boot Logs
+    - Hardware errors
+    - Device driver events
+***** lsmod
+- Displays information about all loaded kernel modules
+- The format is name, size, use count, list of referring modules.
+- The information displayed is identitical to that available from /proc/modules.
+- If the module controls its own unloading via a can_unload routine then the user count dispolayed by lsmod is always -1, irrespective of the real use count.
+***** modprobe
+- High level handling of loadable modules.
+- Allows users to add or remove loadable kernel modules to/from the Linux kernel
+- The modprobe and depmod utilities are intended to make a Linux modular kernel more manageable for all users, administrators, and distribution maintainers.
+- Uses a "Makefile"-like dependency file, created by depmod, to automatically load the relevant module(s) from the set modules available in predefined directory trees.
+- Modprobe is used to load a single module, a stack of dependent modules, or all modules that are marked with a specified tag.
+***** Pwd
+- print working directory
+- displays the full path of where you are currently located starting from the root directory '/'
+***** Grep
+- Stands for: "Global regular expression print"
+- Searches text for patterns specified by user.
+- Ex. gsys event buckets list
+  -> Instead pipe this through grep gsys event buckets list | grep
+- It can also search multiple files for instances searching for err : # grep err file1 file2 file3
+***** Less
+- The "less" command is used to display infrmation to the terminal one page at a time and allows forward, as well as backward, navigation.
+- it doesn't load the entire file into memory, instead, it loads each page into memory a page (screenful) at a time making it more efficient.
+***** Cat
+- Concatenate is one of the most frequently used commands in Linux and Unix, including Mac OS X.
+- Cat allows us to create single or multiple files, view contain of file, concatenate files redirect output in terminal or files.
+- The cat command can read and write data from standard input and output devices. It has three main functions related to manipulating text files: creating them, displaying them, and combining them.
+***** sed
+- The primary use of Linux command sed, which is short for "stream editor" is to modify each line of a file or string by replacing specified parts of the line.
+- It makes basic text changes to a file or input from a pipeline
+  - Ex. songs.txt contains these lines:
+    1) Justin Timberlake, Title 545, Price $6.30
+    2) Johnny Cash, Title 482, Price $6.50
+    3) Elvis Presley, Title 335, Price $6.50
+    4) John Lennon, Title 271, Price $7.90
+- If we want to change all price occurrences of $6.30 to $7.30. To do so, we can use the sed command in this way:
+# sed 's/6.30/7.30/' songs.txt > songs2.txt
+- This syntax makes the change and saves the modified file as songs2.txt. The new file contains:
+  1) Justin TImberlake, Title 545, Price $7.30
+  2) Johnny Cash, Title 482, Price $6.50
+  3) Elvis Presley, Title 335, Price $7.30
+  4) John Lennon, Title 271, Price $7.90
+- Sed is also frequently used to filter lines in a file or stream. For example, If you only want to see the lines containing "John", you would use the following sed command:
+  # sed -n '/John/p' songs.txt > johns.txt
+  - The new johns.txt file will contain the following lines:
+    3) Johnny Cash, Title 482, Price $6.50
+    4) John Lennon, Title 271, Price $7.90
+***** Touch
+- Creates a file or modifies the timestamp on a file
+***** Mv
+- Moves files and directories from one location to another.
+- Can also be used to rename files & directories
+***** Cp
+- Copies files and directories from one location to another
+***** Mkdir
+- Creates a directory at the specified location
+***** Rmdir
+- Removes empty directories from your filesystem.
+***** Rm
+- Deleting files & directories
+***** chmod
+- Stands for changemode.
+- in all unix-like operating systems, chmod is the command and system call which may change the access permissions to file system objects.
+- It may also alter special mode flags. The request is filtered by the umask.
+****** Options used with chmod
+1) -f, --silent, --quiet (supresses most error messages)
+2) -v, --verbose (outputs a diagnostic for every file processed)
+3) -c, --changes (like verbose but reports only when a change is made)
+4) -R, --recursive (change files and direcotires recursively)
+5) --help
+6) --version
+****** Numerical permissions
+-7, rwx, read, write & execute
+-6, rw-, read and write
+-5, r-x, read and execute
+-4, r--, read-only
+-3, -wx, write and execute
+-2, -w-, write only
+-1, --x, execute only
+-0, ---, none
+- Tip: Just remember 1, 2 and 4. Everything else is a combination (with the number being the total)
+****** Examples
+***** Chown
+- Change owner and group of files/directories/links
+  Ex. transfer the ownership of a file and dir to a new owner (alice):
+  # chown alice file1 dir1
+***** useradd
+- Low level utility that is used for adding/creating user accounts
+***** groupadd
+- The groupadd command creates a new group account using the values specified on the command line plus the default values from the system.
+- Default settings for users is located in /etc/login.defs.
+***** passwd
+- Used to change the password of a user account.
+- Can be used by a user to change their own passsword
+- Can be used by a super user (sudo) to change both their own and others passwords.
+  -> This includes defining permissions about how a normal user's account password can be used or changed.
+***** lspci
+- A utility used for displaying information about all PCI buses in the system and all devices connected to them.
+- By default, it displays ai brief list of devices.
+***** lsusb
+- A utility used for displaying information about USB buses in the system and the devices connected to them.
+***** mount
+- Mounts a storage device or file system.
+***** umount
+- Unmounts a storage device or file system
+  # umount <directory of mounted device>
+***** fdisk
+- fdisk is a menu driven program for creation, manipulation and viewing of partition tables.
+***** mkfs
+- The mkfs (i.e, make filesystem) command is used to create a filesystem on a formatted storage device or media, usually a partition on a hard disk drive.
+***** df
+- Displays:
+  - Device Name
+  - Total Blocks
+  - Total Disk Space
+  - Used Disk Space
+  - Available Disk Space
+  - Mount points on file systems
+- You can display sizes in a human readable format by using '-h'
+- Using '-i'
+***** du
+- The du command shows the disk space used by the files and directories in the current directory.
+***** top
+- The traditional way to view your system's resource usage and see the processes that are taking up the most system resources. Top displays a list of processes, with the ones using the most CPU at the top.
+***** htop
+- An improved version of top.
+- Usually manually Installed on Linux distros
+***** btop
+- The superior top.
+***** ps
+- Lists running processes.
+***** pstree
+- Another way of visualizing processes.
+- Displays system processes in a tree format.
+***** nice & renice
+- By default, all processes are considered equally urgent and are alloted the same amount of CPU time.
+- The 'nice' parameter is to change the priority of processes It ranges from -20 to +19 and can take only integer values.
+***** iostat
+- Lists CPU Utilization, device utilization and network file system utilization
+****** command examples
+-nice
+  -> Starts a new process (job) and assigns it a priority (nice) value at the same time.
+-renice
+  -> changes the priority of a process that is already running.
+***** df
+- Command that displays the information of device name, total blocks, total disk space, used disk space, available disk space and mount points on a file system.
+***** Sensors
+- Command to get basic temp info for devices
+**** Root Directories
+***** /bin
+- User binaries
+- Contains binary executables.
+- Common linux commands you need to use in single-user modes are located under this directory.
+- Commands used by all the users of the system are located here.
+***** /sbin
+- System binaries
+- Also contains binary executables, but the linux commands located under this directory are used typically by system administrators, for system maintenance purposes.
+***** /etc
+- Contains Configuration Files required by all programs.
+- Specifically, also contains startup and shutdown shell scripts used to start/stop individual programs.
+***** /dev
+- Device files
+- Terminal devices, usb, or any device attached to the system.
+***** /proc
+- Process Information
+- Virtual file system containing information about each running process. Including kernel processes, in directories named /proc/PID, where PID is the process number. Each directory contains information about one process.
+***** /var
+- Variable Files
+- Content of the files that are expected to grow can be found under this directory.
+- This includes system log files (/var/log); packages and database files (/var/lib); emails (/var/mail)
+- Var/tmp does NOT clear at reboot.
+***** /tmp
+- Temporary Files
+- Directory that contains temporary files created by system and users.
+- Files under this directory are deleted when the system reboots.
+***** /usr
+- User Programs
+- Contains binaries, libraries, documentation, and source-code for second level programs.
+***** /home
+- Home Directories
+- Home directories for all users to store their personal files.
+***** /boot
+- Contains files related to your bootloader.
+- Kernel initrd, vmlinux, grub files are all located under /boot
+***** /lib
+- System Libraries
+- Contains library files that supports the binaries located under /bin and /sbin
+***** /opt
+- Optional add-on Applications
+- Contains add-on applications from individual vendors.
+***** /mnt
+- Mount Directory
+- Temporary mount directory where sysadmins can mount filesystems.
+***** /media
+- Removable Media Devices
+- Temporary mount directory for removable devices.
+***** /srv
+- Service Data
+  - Contains server specific related data.
+*** OS Boot Proces
+**** Power
+**** BIOS
+- Stands for: Basic Input/Output System
+- Searches, loads, and executes the bootloader program. Once the boot loader program is detected and loaded into memory -> BIOS gives the control to it. (TLDR: BIOS loads and executes the MBR bootloader.)
+**** Post
+- Stands for: Power on Shelf Test
+- This test checks all connected hardware, including RAM and secondary storage devices to ensure that they're functioning.
+**** MBR
+- Stands for: Master Boot Record
+- Located in the first sector of the bootable disk. It points to the boot record of the selected operating system.
+- TLDR: MBR loads and executes the bootloader.
+**** GRUB
+- Stands for: Grand Unified Bootleader
+- GRUB is a bootloader, and it has knowledge of the filesystem.
+- GRUB depends on its configuration file, which specifies things like how long the timer until it chooses the default kernal image, what kernel images to list, the GUI, etc.
+**** Kernel
+- Mounts the root file system as specified in the "root=" grub.conf
+- Kernel executes the /sbin/init program
+- The kernels are located in the /boot directory, along with an initial RAM disk image (initrd).
+***** initrd
+initrd is used by the kernel as temporary root file system until kernel is booted and the real root file system is mounted. It also contains necessary drivers compiled inside, which helps it to access the hard drive partitions and other hardware.
+**** OS (systemd)
+- uses its configuration file -> /etc/systemd/system/default.target, to determine which state or target, into which it should boot the host.
+- For a server, the default is more than likely to be the multi-user.target which is runlevel 3.
+- If graphical.target (runlevel 5) is the default, than you should see a GUI login.
+*** BIOS vs CMOS
+- BIOS is a small program that controls the computer from the time it powers on until the OS takes over. The BIOS is firmware, and thus cannot store variable data.
+- CMOS (Complementary metal oxide semiconductor) is a type of memory technology, but generally refers to the chip that stores variable data for startup. A computer's BIOS will initialize and control components like the hard drive controllers and the computer's hardware clock, but the specific parameters for startup and initializing components are stored in the CMOS.
+*** Comparing MBR to GPT
+- Prerequisite: You have to partition a disk before you can use it.
+- Master Boot Record (MBR) and GUID Partition Table (GUID) are two different ways of storing the partitioning information on a drive.
+- This information includes where partitions start & begin, so your operating system knows which sectors belong to each partition and which partition is bootable. This is why you have to choose MBR or GPT before creating partitions on a drive.
+*** MBR
+- Stands for: Master Boot Record
+- First sector of a hard disk
+- Holds the information on how the logical partitions, containing file systems, are organized on that medium
+- The MBR also contains executable code to function as a loader for the installed operating system-usually by passing control over to the loader's second stage, or in conjuction with each partition's volume boot record (VBR).
+- This MBR code is usually reffered to as a boot loader.
+**** Associated Terms
+- Sector: The smallest unit that can be accessed on a hard disk
+- Cluster: A group of sectors that make up the smallest unit of disk allocation for a file within a file system. (TLDR: A cluster size is the smallest amount of space a file can take up on a computer. A common size is 512 bytes. A common cluster size is 8 sectors.)
+*** GPT
+- Stands for: GUID Partition Table
+- A new standard that's gradually replacing MBR.
+- It's associated with UEFI, which replaces the old BIOS with something more modern. GPT, in turn, replaces the old MBR partitioning system with something more modern.
+- It's called GUID Partition Table because every partition on your drive has a globally unique identifier, a random string so long that every GPT partition on earth likely has it's own unique ID.
+**** Quick Facts
+- GPT doesn't suffer from MBR's limits (2TB Drive limit).
+- on an MBR disk, the partitioning and boot data is stored in one place. This means if data is overwritten or corrupted, you're in trouble. In contrast -> GPT stores multiple copies of this data across the disk.
+- GPT stores CRC check values to check that its data is intact.
+- MBR did not do any of this shi.
+*** Computer Components
+- Power Supply - Converts high voltage alternating current (AC) from a wall outlet into low voltage direct current (DC) to feed electric power to all components
+- Motherboard - Bridges communication between all the parts of the computer -> also allowing them to receive power
+- CPU - Handles almost all computation. Things like:
+  - Executing Instructions from software to process data
+  - Managing system operations
+  - Performing calculations
+- Made of highly purified silicon derived from sand
+- Heatsink - Draws heat away from critical, high-temperature components like the CPU or GPU to prevent overheating and failure. Often boosted by a fan
+- Fans - cools heatsink and other components
+- DIMM (RAM) - Stands for: Random access memory: Stores active data temporarily so the processor can pull it quickly. More RAM = More multitasking
+- Hard Drive - Non-volatile memory for storing operating system, filesystem and user data.
+- GPU - takes computational load from CPU and speeds everything up. Typically required for accelerating graphic-intensive tasks like gaming, video editing and 3d modeling
+*** Interview Q&A + Notes
+**** Questions
+***** Linux / System Fundamentals (Logs, FS, Inodes)
+1. What is the purpose of /var/log/messages, and what kind of events would you expect to find there?
+2. How would you troubleshoot a system issue using logs in /var/log/?
+3. What is an inode, and why doesn’t it store the filename?
+4. How does a directory map filenames to inodes?
+5. What happens when multiple hard links point to the same inode?
+6. How can you identify if two files are hard linked?
+7. What happens to a file’s data when one hard link is deleted?
+8. What is the key difference between a hard link and a symbolic link?
+9. What happens to a symbolic link if the target file is deleted?
+10. Why can’t hard links cross filesystem boundaries?
+
+***** Filesystems & Storage
+11. What are the key differences between FAT32, NTFS, and ext4?
+12. Why is FAT32 still used despite its limitations?
+13. What advantages does ext4 have over ext2/ext3?
+14. What is journaling, and why is it important?
+15. What is copy-on-write in Btrfs, and why is it useful?
+
+        Copy-on-Write (CoW) in Btrfs is a storage mechanism where modified data is written to a new location instead of overwriting the original data in place. When a file changes, Btrfs writes the new data to free space and updates metadata to point to it, ensuring data integrity during power failures and enabling instantaneous snapshots/clones
+
+16. How do Btrfs snapshots help in a production environment?
+17. Why might a company choose Btrfs over ext4?
+18. What filesystem would you use for a Linux server and why?
+19. Why are Linux filesystems not natively supported in Windows?
+20. What is the purpose of mkfs, and when would you use it?
+***** RAID & Storage Reliability
+1. Explain RAID 0 and when you would use it.
+2. What is RAID 1 and what problem does it solve?
+3. How does RAID 5 achieve fault tolerance?
+4. What is parity in RAID 5?
+5. Why are RAID 5 writes slower than RAID 0?
+6. What happens when a drive fails in RAID 5?
+7. Explain RAID 10 and how it combines RAID 1 and RAID 0.
+8. Why is RAID 10 preferred over RAID 5 in critical systems?
+9. How many drives can fail in RAID 10 without data loss?
+10. If performance and redundancy are both critical, which RAID level would you choose and why?
+
+***** Linux Commands & Troubleshooting
+31. What does dmesg show, and when would you use it?
+32. How is dmesg different from /var/log/messages?
+33. What does lsmod display?
+34. What is the difference between modprobe and lsmod?
+35. How would you check disk usage on a system?
+36. What is the difference between df and du?
+37. What does ps aux | grep <process> do?
+38. What is a pipe (|) and why is it useful?
+39. How would you search for a string inside multiple files?
+40. What does the sed command do? Give a real-world use case.
+
+
+“First, I determine whether the system is actually powering on—checking power lights, fans, and any POST indicators. If there’s no display but the system is powered, I verify the monitor, cable, and input source to rule out a display issue.
+
+If those are fine, I look for signs of POST—beep codes or diagnostic LEDs. From there, I start isolating hardware by reseating components like RAM and GPU, and checking for loose connections.
+
+If I still get a black screen, I’d minimize the configuration to essentials (CPU, one RAM stick, integrated graphics if available) to identify the failing component.
+
+Throughout, I document what I’ve tested and proceed methodically to narrow down whether it’s a display issue, POST failure, or hardware component failure.”
+
+***** Processes & Performance
+41. What is a zombie process and how would you identify one?
+42. Why do zombie processes occur?
+43. What tools can you use to monitor system performance?
+44. What is the difference between top, htop, and btop?
+45. What does the “nice” value of a process mean?
+46. How would you change the priority of a running process?
+47. What command would you use to view process hierarchy?
+48. What does iostat tell you?
+49. How would you troubleshoot high CPU usage on a Linux server?
+50. How would you investigate a system that is running slow?
+
+***** Bonus (High-Value Scenario Questions)
+- A server is slow—CPU and memory look fine. What do you check next?
+
+    “I would check I/O and system bottlenecks next. I’d look at disk utilization, latency, and queue depth using tools like iostat or vmstat. I’d also check for high disk wait time, network saturation, and any processes causing excessive I/O. If needed, I’d inspect logs for errors or resource contention and identify whether the slowdown is due to storage, network, or a specific process.”
+
+- A disk is full—how do you quickly find what’s consuming space?
+
+  “I’d start with df -h to identify which filesystem is full, then use du -sh * at the directory level to locate large directories. I’d drill down recursively into the largest ones. For a faster system-wide view, I might use du -ahx / | sort -rh | head. I’d also check for deleted files still held open by processes using lsof.”
+
+- A system won’t boot—walk me through your troubleshooting steps.
+
+  “I’d first check for basic hardware issues—power, cables, and POST/BIOS output. If available, I’d look for beep codes or diagnostic LEDs. Next, I’d verify whether the system reaches BIOS and detects storage devices. If it fails at bootloader or kernel stage, I’d inspect boot order and bootloader configuration. I’d also try booting into recovery mode or using a live environment to check logs and disk integrity.”
+
+
+- A RAID array reports a degraded state—what do you do?
+
+  “I would first identify which drive has failed using RAID management tools. Then I’d confirm the health of remaining drives. If a failed drive is present, I’d replace it with a compatible drive and initiate a rebuild or allow automatic rebuild. During this, I’d monitor the rebuild process and ensure no additional drives fail. I’d also check logs and alerts to understand the root cause.”
+
+- You see hardware errors in dmesg—what’s your next step?
+
+  “I’d review the specific error messages in dmesg and correlate them with system logs like /var/log/messages or journalctl. Then I’d identify the affected component—such as disk, memory, or network hardware. If it points to storage, I’d check SMART data; if it’s memory-related, I’d consider running diagnostics like memtest. I’d escalate or replace the hardware if errors persist.”
