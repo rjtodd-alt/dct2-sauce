@@ -91,7 +91,7 @@
 - Windows and Mac do not support Ext filesystems, however they can with third-party tools.
 - For this reason -> it's often ideal to format your linux partitions with Ext4 and leave removable devices formatted with FAT32 or NTFS.
 ****** Btrfs
-- Stands For: "Better File System"
+- Stands For: "B-Tree File System"
 - A modern Linux file system designed for advanced features, scalability, and data integrity.
 - Will not be set by default, but will likely replace it eventually.
 - Designed for large-scale storage systems
